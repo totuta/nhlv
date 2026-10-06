@@ -22,4 +22,7 @@ def favorite_teams() -> list[str]:
     if env_value:
         return [item.strip().upper() for item in env_value.split(",") if item.strip()]
     home = Path.home()
-    return _read_favs(home / ".config" / "nhlv" / "config") or _read_favs(home / ".config" / "mlbv" / "config")
+    nhlv_favs = _read_favs(home / ".config" / "nhlv" / "config")
+    if nhlv_favs:
+        return nhlv_favs
+    return _read_favs(home / ".config" / "mlbv" / "config")

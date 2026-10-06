@@ -45,18 +45,20 @@ scripts, and SSH sessions.
 ## Favourite teams
 
 Favourite teams are highlighted in scores, standings, and boxscores. The
-existing `~/.config/mlbv/config` `favs=` setting is read automatically, so an
-existing mlbv setup can be reused. You can also set:
+primary configuration file is `~/.config/nhlv/config`:
+
+```ini
+favs=OTT,TOR
+```
+
+The older `~/.config/mlbv/config` `favs=` setting is used only as a fallback
+when the NHL-specific setting is absent. You can also set:
 
 ```bash
 export NHLV_FAVORITES=TOR,MTL
 ```
 
-or create `~/.config/nhlv/config` with:
-
-```ini
-favs=TOR,MTL
-```
+The environment variable takes precedence over both config files.
 
 ## Development
 

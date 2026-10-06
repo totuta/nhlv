@@ -148,14 +148,18 @@ def format_wildcard_standings(payload: dict[str, Any], group: str | None = None,
     return heading("NHL Wild Card Standings") + ("\n" + "\n".join(rows) if rows else "\nNo wild card standings found.")
 
 
-def format_schedule(payload: dict[str, Any], team_filter: str | None = None) -> str:
+def format_schedule(
+    payload: dict[str, Any],
+    team_filter: str | None = None,
+    favorites: Iterable[str] = (),
+) -> str:
     rows = []
     weeks = payload.get("gameWeek", [])
     if payload.get("games"):
         weeks = [{"date": payload.get("currentDate") or payload.get("date"), "games": payload["games"]}]
     for week in weeks:
         date_value = text(week.get("date"), "-")
-        game_lines = game_rows({"games": week.get("games", [])}, team_filter)
+        game_lines = game_rows({"games": week.get("games", [])}, team_filter, favorites)
         if game_lines:
             rows.append(f"\n{date_value}")
             rows.extend(game_lines)
@@ -165,6 +169,15 @@ def format_schedule(payload: dict[str, Any], team_filter: str | None = None) -> 
 def _player_name(player: dict[str, Any]) -> str:
     name = player.get("name") or {}
     return text(name, f"{text(player.get('firstName'))} {text(player.get('lastName'))}")
+
+
+def _favorite_player_matches(player_name: str, favorite_players: Iterable[str]) -> bool:
+    """Match configured last names exactly against the player's last name."""
+    name_parts = player_name.strip().split()
+    if not name_parts:
+        return False
+    last_name = name_parts[-1].strip(".,").casefold()
+    return last_name in {favorite.strip().strip(".,").casefold() for favorite in favorite_players}
 
 
 def format_leaders(payload: dict[str, Any], category: str, player_type: str) -> str:
@@ -201,43 +214,87 @@ def format_boxscore(
     stats = payload.get("playerByGameStats", {})
     for side, team in (("awayTeam", away), ("homeTeam", home)):
         code = text(team.get("abbrev"), "---").upper()
-        label = f"{_boxscore_team_name(team)} players"
+        label = f"{_boxscore_team_name(team)}"
         if code in favorite_set:
             label = f"{FAVORITE_COLOR}{label}{RESET_COLOR}"
-        rows.extend((f"\n{label}", " PLAYER                 G A P +/- SOG PIM TOI"))
-        for player in _boxscore_players(stats.get(side, {})):
+        team_stats = stats.get(side, {})
+        rows.extend((f"\n{label} skaters", " PLAYER                 G A P +/- SOG PIM TOI"))
+        for player in team_stats.get("forwards", []) + team_stats.get("defense", []):
             player_name = text(player.get("name"), "-")
             line = f" {player_name:<22} {player.get('goals', 0):>1} {player.get('assists', 0):>1} {player.get('points', 0):>1} {player.get('plusMinus', 0):>3} {player.get('sog', 0):>3} {player.get('pim', 0):>3} {text(player.get('toi'), '-'):>4}"
-            player_matches = any(last_name in player_name.lower() for last_name in favorite_player_set)
-            rows.append(f"{FAVORITE_COLOR}{line}{RESET_COLOR}" if code in favorite_set or player_matches else line)
+            player_matches = _favorite_player_matches(player_name, favorite_player_set)
+            rows.append(f"{FAVORITE_COLOR}{line}{RESET_COLOR}" if player_matches else line)
+        goalies = team_stats.get("goalies", [])
+        if goalies:
+            rows.extend((f"\n{label} goalies", " GOALIE                 SV  SA  GA   SV%   TOI"))
+            for player in goalies:
+                player_name = text(player.get("name"), "-")
+                saves = player.get("saves", player.get("sv", 0))
+                shots = player.get("shotsAgainst", player.get("shots", 0))
+                goals_against = player.get("goalsAgainst", player.get("ga", 0))
+                save_pct = player.get("savePctg", player.get("savePercentage"))
+                if save_pct is None and shots:
+                    save_pct = (int(saves) / int(shots)) if int(shots) else 0
+                save_pct_text = f"{float(save_pct):.3f}" if save_pct is not None else "-"
+                line = (
+                    f" {player_name:<22} {saves:>3} {shots:>3} {goals_against:>3}"
+                    f" {save_pct_text:>6} {text(player.get('toi'), '-'):>5}"
+                )
+                player_matches = any(last_name in player_name.lower() for last_name in favorite_player_set)
+                rows.append(f"{FAVORITE_COLOR}{line}{RESET_COLOR}" if player_matches else line)
     return "\n".join(rows)
 
 
 def format_favorite_player_stats(
     payloads: Iterable[dict[str, Any]], favorite_players: Iterable[str]
 ) -> str:
-    """Display today's boxscore lines for configured favourite players."""
+    """Display today's favourite skaters and goalies in separate tables."""
     player_names = {player.lower() for player in favorite_players}
-    rows = [heading("NHL Favourite Player Stats")]
-    found = False
+    skaters: list[dict[str, Any]] = []
+    goalies: list[dict[str, Any]] = []
     for payload in payloads:
         game_id = payload.get("id", "-")
         stats = payload.get("playerByGameStats", {})
         for side in ("awayTeam", "homeTeam"):
             team = payload.get(side, {})
             team_code = text(team.get("abbrev"), "---")
-            for player in _boxscore_players(stats.get(side, {})):
+            team_stats = stats.get(side, {})
+            for player in team_stats.get("forwards", []) + team_stats.get("defense", []):
                 name = text(player.get("name"), "-")
-                if not any(last_name in name.lower() for last_name in player_names):
+                if not _favorite_player_matches(name, player_names):
                     continue
-                found = True
-                rows.append(f"\n{game_id}  {team_code}  {name}")
-                rows.append(" G A P +/- SOG PIM TOI")
-                rows.append(
-                    f" {player.get('goals', 0):>1} {player.get('assists', 0):>1} {player.get('points', 0):>1}"
-                    f" {player.get('plusMinus', 0):>3} {player.get('sog', 0):>3}"
-                    f" {player.get('pim', 0):>3} {text(player.get('toi'), '-'):>4}"
-                )
-    if not found:
-        rows.append("\nNo favourite player stats found for today's games.")
+                skaters.append({**player, "game": game_id, "team": team_code, "name": name})
+            for player in team_stats.get("goalies", []):
+                name = text(player.get("name"), "-")
+                if not _favorite_player_matches(name, player_names):
+                    continue
+                goalies.append({**player, "game": game_id, "team": team_code, "name": name})
+
+    rows = [heading("NHL Favourite Player Stats")]
+    if skaters:
+        rows.extend(("\nSkaters", " TEAM  PLAYER                 G  A  P +/- SOG PIM   TOI"))
+        for player in skaters:
+            rows.append(
+                f" {player['team']:<5} {player['name']:<22}"
+                f" {player.get('goals', 0):>2} {player.get('assists', 0):>2} {player.get('points', 0):>2}"
+                f" {player.get('plusMinus', 0):>3} {player.get('sog', 0):>3} {player.get('pim', 0):>3}"
+                f" {text(player.get('toi'), '-'):>5}"
+            )
+    if goalies:
+        rows.extend(("\nGoalies", " TEAM  PLAYER                 SV  SA  GA   SV%   TOI"))
+        for player in goalies:
+            saves = player.get("saves", player.get("sv", 0))
+            shots = player.get("shotsAgainst", player.get("shots", 0))
+            goals_against = player.get("goalsAgainst", player.get("ga", 0))
+            save_pct = player.get("savePctg", player.get("savePercentage"))
+            if save_pct is None and shots:
+                save_pct = (int(saves) / int(shots)) if int(shots) else 0
+            save_pct_text = f"{float(save_pct):.3f}" if save_pct is not None else "-"
+            rows.append(
+                f" {player['team']:<5} {player['name']:<22}"
+                f" {saves:>2} {shots:>3} {goals_against:>3} {save_pct_text:>6}"
+                f" {text(player.get('toi'), '-'):>5}"
+            )
+    if not skaters and not goalies:
+        rows.append("\nNo favourite player stats found.")
     return "\n".join(rows)

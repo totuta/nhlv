@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, timedelta
 from typing import Any
 
 import requests
@@ -57,6 +57,8 @@ class NHLClient:
 def valid_date(value: str) -> str:
     if value == "now":
         return value
+    if value == "yesterday":
+        return (date.today() - timedelta(days=1)).isoformat()
     try:
         date.fromisoformat(value)
     except ValueError as exc:

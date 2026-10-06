@@ -1,4 +1,10 @@
-from nhlv.formatting import format_boxscore, format_favorite_player_stats, format_scores, format_standings
+from nhlv.formatting import format_boxscore, format_favorite_player_stats, format_schedule, format_scores, format_standings
+from nhlv.api import valid_date
+
+
+def test_valid_date_supports_yesterday():
+    assert len(valid_date("yesterday")) == 10
+    assert valid_date("now") == "now"
 
 
 def test_format_scores_filters_team():
@@ -12,6 +18,19 @@ def test_format_scores_filters_team():
     output = format_scores(payload, "TOR")
     assert "TOR" in output
     assert "BOS" not in output
+
+
+def test_format_schedule_highlights_favorite_team():
+    payload = {
+        "currentDate": "2026-10-05",
+        "games": [
+            {"gameState": "FINAL", "awayTeam": {"abbrev": "MTL", "score": 3}, "homeTeam": {"abbrev": "TOR", "score": 2}},
+            {"gameState": "FINAL", "awayTeam": {"abbrev": "BOS", "score": 1}, "homeTeam": {"abbrev": "NYR", "score": 0}},
+        ],
+    }
+    output = format_schedule(payload, favorites=["TOR"])
+    assert "\033[94m" in output
+    assert output.count("\033[94m") == 1
 
 
 def test_format_standings():
@@ -61,13 +80,16 @@ def test_format_boxscore_highlights_favorite_team():
         "awayTeam": {"abbrev": "TOR", "placeName": {"default": "Toronto"}, "score": 3},
         "homeTeam": {"abbrev": "MTL", "placeName": {"default": "Montreal"}, "score": 2},
         "playerByGameStats": {
-            "awayTeam": {"forwards": [{"name": {"default": "A. Player"}, "goals": 1, "assists": 0, "points": 1}]},
-            "homeTeam": {"forwards": []},
+            "awayTeam": {"forwards": [{"name": {"default": "A. Player"}, "goals": 1, "assists": 0, "points": 1}], "goalies": []},
+            "homeTeam": {"forwards": [], "goalies": [{"name": {"default": "H. Goalie"}, "saves": 25, "shotsAgainst": 27, "goalsAgainst": 2, "toi": "60:00"}]},
         },
     }
     output = format_boxscore(payload, ["MTL"], ["player"])
     assert "Toronto" in output
     assert "\033[94m" in output
+    assert "skaters" in output
+    assert "goalies" in output
+    assert "0.926" in output
 
 
 def test_format_favorite_player_stats():
@@ -77,9 +99,28 @@ def test_format_favorite_player_stats():
         "homeTeam": {"abbrev": "TOR"},
         "playerByGameStats": {
             "awayTeam": {"forwards": [{"name": {"default": "L. Hutson"}, "goals": 1, "assists": 2, "points": 3, "plusMinus": 2, "sog": 4, "pim": 0, "toi": "22:10"}]},
-            "homeTeam": {"forwards": []},
+            "homeTeam": {"forwards": [], "goalies": [{"name": {"default": "I. Goalie"}, "saves": 28, "shotsAgainst": 30, "goalsAgainst": 2, "toi": "60:00"}]},
         },
     }
-    output = format_favorite_player_stats([payload], ["hutson"])
+    output = format_favorite_player_stats([payload], ["hutson", "goalie"])
     assert "L. Hutson" in output
     assert "22:10" in output
+    assert "Skaters" in output
+    assert "Goalies" in output
+    assert "28" in output
+    assert "0.933" in output
+
+
+def test_favorite_player_matching_requires_exact_last_name():
+    payload = {
+        "id": 123,
+        "awayTeam": {"abbrev": "MTL"},
+        "homeTeam": {"abbrev": "TOR"},
+        "playerByGameStats": {
+            "awayTeam": {"forwards": [{"name": {"default": "A. DeSmith"}}]},
+            "homeTeam": {"forwards": [{"name": {"default": "J. Smith"}}]},
+        },
+    }
+    output = format_favorite_player_stats([payload], ["smith"])
+    assert "J. Smith" in output
+    assert "A. DeSmith" not in output

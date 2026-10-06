@@ -46,7 +46,9 @@ def build_parser() -> argparse.ArgumentParser:
     boxscore.add_argument("game_id", nargs="?", help="NHL game ID")
     boxscore.add_argument("--team", help="find today's game for this team")
     boxscore.add_argument("--favorites", action="store_true", help="show today's games for favourite teams")
-    subparsers.add_parser("favorite-stats", help="show today's favourite player stats")
+    boxscore.add_argument("--date", default="now", type=valid_date, help="YYYY-MM-DD or yesterday")
+    favorite_stats = subparsers.add_parser("favorite-stats", help="show favourite player stats")
+    favorite_stats.add_argument("--date", default="now", type=valid_date, help="YYYY-MM-DD or yesterday")
     return parser
 
 
@@ -56,7 +58,7 @@ def run(args: argparse.Namespace, client: NHLClient) -> str:
     if args.command == "standings":
         return format_standings(client.standings(args.date), args.group, args.category, favorite_teams())
     if args.command == "schedule":
-        return format_schedule(client.schedule(args.date), args.team)
+        return format_schedule(client.schedule(args.date), args.team, favorite_teams())
     if args.command == "team":
         return format_schedule(client.team_schedule(args.team), args.team)
     if args.command == "leaders":
@@ -71,7 +73,7 @@ def run(args: argparse.Namespace, client: NHLClient) -> str:
             return format_boxscore(client.boxscore(args.game_id), favorites, favorite_players())
         if not args.favorites and not team:
             raise ValueError("provide GAME_ID, --team TEAM, or --favorites")
-        games = client.scores("now").get("games", [])
+        games = client.scores(args.date).get("games", [])
         targets = set(favorites if args.favorites else [team.upper()])
         selected = [game for game in games if targets.intersection({game.get("awayTeam", {}).get("abbrev", "").upper(), game.get("homeTeam", {}).get("abbrev", "").upper()})]
         if not selected:
@@ -83,7 +85,7 @@ def run(args: argparse.Namespace, client: NHLClient) -> str:
         players = favorite_players()
         if not players:
             raise ValueError("no favourite players configured")
-        payload = client.scores("now")
+        payload = client.scores(args.date)
         game_payloads = [client.boxscore(game["id"]) for game in payload.get("games", [])]
         return format_favorite_player_stats(game_payloads, players)
     raise ValueError(f"unknown command: {args.command}")

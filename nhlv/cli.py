@@ -8,7 +8,14 @@ import sys
 from . import __version__
 from .api import NHLAPIError, NHLClient, valid_date
 from .config import favorite_players, favorite_teams
-from .formatting import format_boxscore, format_leaders, format_schedule, format_scores, format_standings
+from .formatting import (
+    format_boxscore,
+    format_favorite_player_stats,
+    format_leaders,
+    format_schedule,
+    format_scores,
+    format_standings,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -39,6 +46,7 @@ def build_parser() -> argparse.ArgumentParser:
     boxscore.add_argument("game_id", nargs="?", help="NHL game ID")
     boxscore.add_argument("--team", help="find today's game for this team")
     boxscore.add_argument("--favorites", action="store_true", help="show today's games for favourite teams")
+    subparsers.add_parser("favorite-stats", help="show today's favourite player stats")
     return parser
 
 
@@ -71,6 +79,13 @@ def run(args: argparse.Namespace, client: NHLClient) -> str:
         return "\n\n".join(
             format_boxscore(client.boxscore(game["id"]), favorites, favorite_players()) for game in selected
         )
+    if args.command == "favorite-stats":
+        players = favorite_players()
+        if not players:
+            raise ValueError("no favourite players configured")
+        payload = client.scores("now")
+        game_payloads = [client.boxscore(game["id"]) for game in payload.get("games", [])]
+        return format_favorite_player_stats(game_payloads, players)
     raise ValueError(f"unknown command: {args.command}")
 
 

@@ -211,3 +211,33 @@ def format_boxscore(
             player_matches = any(last_name in player_name.lower() for last_name in favorite_player_set)
             rows.append(f"{FAVORITE_COLOR}{line}{RESET_COLOR}" if code in favorite_set or player_matches else line)
     return "\n".join(rows)
+
+
+def format_favorite_player_stats(
+    payloads: Iterable[dict[str, Any]], favorite_players: Iterable[str]
+) -> str:
+    """Display today's boxscore lines for configured favourite players."""
+    player_names = {player.lower() for player in favorite_players}
+    rows = [heading("NHL Favourite Player Stats")]
+    found = False
+    for payload in payloads:
+        game_id = payload.get("id", "-")
+        stats = payload.get("playerByGameStats", {})
+        for side in ("awayTeam", "homeTeam"):
+            team = payload.get(side, {})
+            team_code = text(team.get("abbrev"), "---")
+            for player in _boxscore_players(stats.get(side, {})):
+                name = text(player.get("name"), "-")
+                if not any(last_name in name.lower() for last_name in player_names):
+                    continue
+                found = True
+                rows.append(f"\n{game_id}  {team_code}  {name}")
+                rows.append(" G A P +/- SOG PIM TOI")
+                rows.append(
+                    f" {player.get('goals', 0):>1} {player.get('assists', 0):>1} {player.get('points', 0):>1}"
+                    f" {player.get('plusMinus', 0):>3} {player.get('sog', 0):>3}"
+                    f" {player.get('pim', 0):>3} {text(player.get('toi'), '-'):>4}"
+                )
+    if not found:
+        rows.append("\nNo favourite player stats found for today's games.")
+    return "\n".join(rows)

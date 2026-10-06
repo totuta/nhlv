@@ -1,4 +1,4 @@
-from nhlv.formatting import format_boxscore, format_scores, format_standings
+from nhlv.formatting import format_boxscore, format_favorite_player_stats, format_scores, format_standings
 
 
 def test_format_scores_filters_team():
@@ -68,3 +68,18 @@ def test_format_boxscore_highlights_favorite_team():
     output = format_boxscore(payload, ["MTL"], ["player"])
     assert "Toronto" in output
     assert "\033[94m" in output
+
+
+def test_format_favorite_player_stats():
+    payload = {
+        "id": 123,
+        "awayTeam": {"abbrev": "MTL"},
+        "homeTeam": {"abbrev": "TOR"},
+        "playerByGameStats": {
+            "awayTeam": {"forwards": [{"name": {"default": "L. Hutson"}, "goals": 1, "assists": 2, "points": 3, "plusMinus": 2, "sog": 4, "pim": 0, "toi": "22:10"}]},
+            "homeTeam": {"forwards": []},
+        },
+    }
+    output = format_favorite_player_stats([payload], ["hutson"])
+    assert "L. Hutson" in output
+    assert "22:10" in output

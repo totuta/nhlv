@@ -36,6 +36,7 @@ nhlv leaders skaters --category goals --limit 20
 nhlv boxscore 2026020040     # boxscore for a game ID
 nhlv boxscore --team TOR     # today's boxscore for a team
 nhlv boxscore --favorites    # today's boxscores for favourite teams
+nhlv favorite-stats          # today's stats for favourite players
 nhlv scores --date 2026-10-05
 ```
 

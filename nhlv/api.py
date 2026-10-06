@@ -46,6 +46,13 @@ class NHLClient:
     def team_schedule(self, team: str, day: str = "now") -> dict[str, Any]:
         return self.get(f"club-schedule-season/{team.upper()}/{day}")
 
+    def leaders(self, player_type: str, category: str, limit: int = 10) -> dict[str, Any]:
+        endpoint = "skater" if player_type == "skaters" else "goalie"
+        return self.get(f"{endpoint}-stats-leaders/current?categories={category}&limit={limit}")
+
+    def boxscore(self, game_id: int | str) -> dict[str, Any]:
+        return self.get(f"gamecenter/{game_id}/boxscore")
+
 
 def valid_date(value: str) -> str:
     if value == "now":

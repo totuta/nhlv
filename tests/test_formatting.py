@@ -1,4 +1,4 @@
-from nhlv.formatting import format_scores, format_standings
+from nhlv.formatting import format_boxscore, format_scores, format_standings
 
 
 def test_format_scores_filters_team():
@@ -53,3 +53,18 @@ def test_format_wildcard_standings():
     assert "WC1" in output
     assert output.index("East One") < output.index("East Two")
     assert "Division Leader" not in output
+
+
+def test_format_boxscore_highlights_favorite_team():
+    payload = {
+        "id": 123,
+        "awayTeam": {"abbrev": "TOR", "placeName": {"default": "Toronto"}, "score": 3},
+        "homeTeam": {"abbrev": "MTL", "placeName": {"default": "Montreal"}, "score": 2},
+        "playerByGameStats": {
+            "awayTeam": {"forwards": [{"name": {"default": "A. Player"}, "goals": 1, "assists": 0, "points": 1}]},
+            "homeTeam": {"forwards": []},
+        },
+    }
+    output = format_boxscore(payload, ["TOR"])
+    assert "Toronto" in output
+    assert "\033[94m" in output

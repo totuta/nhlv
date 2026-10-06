@@ -30,4 +30,4 @@ render 04 -fill '#d9e7f5' -draw "text 70,205 '$ nhlv standings'" -fill '#7ee7ff'
 render 05 -fill '#d9e7f5' -draw "text 70,205 '$ nhlv favorite-stats'" -fill '#7ee7ff' -draw "text 70,270 'NHL Favourite Player Stats'" -fill '#d9e7f5' -draw "text 70,325 'Skaters'" -draw "text 70,380 'MTL  L. Hutson                 1  2  3  +2  4  0  22:10'"
 render 06 -fill '#d9e7f5' -draw "text 70,205 '$ nhlv schedule'" -fill '#7ee7ff' -draw "text 70,270 'NHL Schedule'" -fill '#d9e7f5' -draw "text 70,325 '2026-10-06'" -draw "text 70,380 '19:00  MTL  @  OTT  FUT'"
 
-magick -delay 80 -loop 0 "$frames"/*.png -layers Optimize "$root/assets/nhlv-demo.gif"
+magick -delay 100 -loop 0 "$frames"/*.png "$root/assets/nhlv-demo.gif"

@@ -2,7 +2,7 @@
 
 <img src="assets/nhlv-logo.png" alt="nhlv logo" width="50%">
 
-![nhlv terminal demo](assets/nhlv-demo-v2.gif)
+![nhlv terminal demo](assets/nhlv-demo-v3.gif)
 
 `nhlv` is a small command-line client for NHL scores, standings, and schedules.
 It uses the public NHL web API and does not require an account or subscription.

@@ -30,3 +30,14 @@ def test_format_standings():
     assert "Atlantic" in output
     assert "Toronto Maple Leafs" in output
     assert "15" in output
+
+
+def test_format_standings_groups_and_sorts_divisions():
+    payload = {"standings": [
+        {"divisionName": "Pacific", "teamName": {"default": "Pacific Team"}, "divisionSequence": 2},
+        {"divisionName": "Atlantic", "teamName": {"default": "Atlantic Team"}, "divisionSequence": 2},
+        {"divisionName": "Pacific", "teamName": {"default": "Pacific Leader"}, "divisionSequence": 1},
+    ]}
+    output = format_standings(payload)
+    assert output.index("Atlantic") < output.index("Pacific")
+    assert output.index("Pacific Leader") < output.index("Pacific Team")

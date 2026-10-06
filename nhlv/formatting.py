@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Iterable
+from typing import Any
+
+DIVISION_ORDER = ("Atlantic", "Metropolitan", "Central", "Pacific")
 
 
 def text(value: Any, fallback: str = "-") -> str:
@@ -55,12 +57,24 @@ def format_scores(payload: dict[str, Any], team_filter: str | None = None) -> st
     return heading(f"NHL Scores: {game_day}") + ("\n" + "\n".join(rows) if rows else "\nNo games found.")
 
 
-def _standings_rows(payload: dict[str, Any], group: str | None = None) -> Iterable[tuple[str, dict[str, Any]]]:
+def _standings_rows(payload: dict[str, Any], group: str | None = None) -> list[tuple[str, dict[str, Any]]]:
+    selected = []
+    needle = group.lower() if group else None
     for record in payload.get("standings", []):
         division = text(record.get("divisionName"), "-")
-        if group and group.lower() not in division.lower() and group.lower() not in text(record.get("conferenceName")).lower():
+        conference = text(record.get("conferenceName"), "-")
+        if needle and needle not in division.lower() and needle not in conference.lower():
             continue
-        yield division, record
+        selected.append((division, record))
+
+    division_rank = {name: index for index, name in enumerate(DIVISION_ORDER)}
+    return sorted(
+        selected,
+        key=lambda item: (
+            division_rank.get(item[0], len(DIVISION_ORDER)),
+            int(item[1].get("divisionSequence") or item[1].get("leagueSequence") or 999),
+        ),
+    )
 
 
 def format_standings(payload: dict[str, Any], group: str | None = None) -> str:

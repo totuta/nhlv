@@ -25,6 +25,7 @@ python -m pip install .
 nhlv                         # today's scores
 nhlv scores --team TOR       # today's Toronto games
 nhlv standings               # current standings
+nhlv standings wildcard      # Eastern and Western wild card race
 nhlv standings --group East  # filter by conference/division name
 nhlv schedule                # upcoming schedule
 nhlv schedule --team MTL    # upcoming Montreal schedule

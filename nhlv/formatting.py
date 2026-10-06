@@ -6,6 +6,7 @@ from datetime import datetime
 from typing import Any
 
 DIVISION_ORDER = ("Atlantic", "Metropolitan", "Central", "Pacific")
+CONFERENCE_ORDER = ("Eastern", "Western")
 
 
 def text(value: Any, fallback: str = "-") -> str:
@@ -23,7 +24,7 @@ def team_name(team: dict[str, Any]) -> str:
 
 
 def heading(title: str) -> str:
-    return f"\n{title}\n{'=' * len(title)}"
+    return f"\n   {'═' * 8} {title} {'═' * 8}"
 
 
 def game_rows(payload: dict[str, Any], team_filter: str | None = None) -> list[str]:
@@ -77,22 +78,65 @@ def _standings_rows(payload: dict[str, Any], group: str | None = None) -> list[t
     )
 
 
-def format_standings(payload: dict[str, Any], group: str | None = None) -> str:
+def _standing_line(record: dict[str, Any], rank: str) -> str:
+    name = team_name(record)
+    return (
+        f"{rank:>3}  {name:<28} {record.get('gamesPlayed', '-'):>2}"
+        f" {record.get('wins', '-'):>3} {record.get('losses', '-'):>3}"
+        f" {record.get('otLosses', '-'):>2} {record.get('points', '-'):>4}"
+        f" {record.get('goalDifferential', '-'):>5}"
+    )
+
+
+def _standing_header() -> str:
+    return "   ─── RK  TEAM                         GP   W   L OT  PTS  DIFF"
+
+
+def format_standings(
+    payload: dict[str, Any], group: str | None = None, category: str = "division"
+) -> str:
+    if category == "wildcard":
+        return format_wildcard_standings(payload, group)
+
     rows = []
     current_group = None
     for division, record in _standings_rows(payload, group):
         if division != current_group:
-            rows.extend((f"\n{division}", " RK  TEAM                         GP   W   L OT  PTS  DIFF"))
+            rows.extend((f"\n   ─── {division} ─────────────────────────────", _standing_header()))
             current_group = division
-        name = team_name(record)
         rank = text(record.get("divisionSequence") or record.get("leagueSequence"), "-")
-        rows.append(
-            f"{rank:>3}  {name:<28} {record.get('gamesPlayed', '-'):>2}"
-            f" {record.get('wins', '-'):>3} {record.get('losses', '-'):>3}"
-            f" {record.get('otLosses', '-'):>2} {record.get('points', '-'):>4}"
-            f" {record.get('goalDifferential', '-'):>5}"
-        )
+        rows.append(_standing_line(record, rank))
     return heading("NHL Standings") + ("\n" + "\n".join(rows) if rows else "\nNo standings found.")
+
+
+def format_wildcard_standings(payload: dict[str, Any], group: str | None = None) -> str:
+    """Display the standard two wild-card spots and the remaining race."""
+    conferences: dict[str, list[dict[str, Any]]] = {name: [] for name in CONFERENCE_ORDER}
+    needle = group.lower() if group else None
+    for record in payload.get("standings", []):
+        conference = text(record.get("conferenceName"), "-")
+        division = text(record.get("divisionName"), "-")
+        if record.get("divisionSequence", 999) <= 3:
+            continue
+        if needle and needle not in conference.lower() and needle not in division.lower():
+            continue
+        if conference in conferences:
+            conferences[conference].append(record)
+
+    rows = []
+    for conference in CONFERENCE_ORDER:
+        records = sorted(
+            conferences[conference],
+            key=lambda record: int(record.get("wildcardSequence") or 999),
+        )
+        if not records:
+            continue
+        rows.append(f"\n   ─── {conference} Conference ─────────────────────")
+        rows.append(_standing_header())
+        for index, record in enumerate(records, start=1):
+            rank = f"WC{index}" if index <= 2 else str(index)
+            rows.append(_standing_line(record, rank))
+    return heading("NHL Wild Card Standings") + ("\n" + "\n".join(rows) if rows else "\nNo wild card standings found.")
 
 
 def format_schedule(payload: dict[str, Any], team_filter: str | None = None) -> str:

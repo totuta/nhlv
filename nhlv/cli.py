@@ -19,6 +19,13 @@ def build_parser() -> argparse.ArgumentParser:
         sub.add_argument("--date", default="now", type=valid_date, help="YYYY-MM-DD (default: now)")
         sub.add_argument("--team", metavar="TEAM", help="filter by team abbreviation, e.g. TOR")
     standings = subparsers.add_parser("standings", help="show league standings")
+    standings.add_argument(
+        "category",
+        nargs="?",
+        choices=("division", "wildcard"),
+        default="division",
+        help="standings view (default: division)",
+    )
     standings.add_argument("--date", default="now", type=valid_date, help="YYYY-MM-DD (default: now)")
     standings.add_argument("--group", help="filter by division or conference")
     team = subparsers.add_parser("team", help="show a team's season schedule")
@@ -30,7 +37,7 @@ def run(args: argparse.Namespace, client: NHLClient) -> str:
     if args.command in (None, "scores"):
         return format_scores(client.scores(getattr(args, "date", "now")), getattr(args, "team", None))
     if args.command == "standings":
-        return format_standings(client.standings(args.date), args.group)
+        return format_standings(client.standings(args.date), args.group, args.category)
     if args.command == "schedule":
         return format_schedule(client.schedule(args.date), args.team)
     if args.command == "team":

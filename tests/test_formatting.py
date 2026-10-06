@@ -41,3 +41,15 @@ def test_format_standings_groups_and_sorts_divisions():
     output = format_standings(payload)
     assert output.index("Atlantic") < output.index("Pacific")
     assert output.index("Pacific Leader") < output.index("Pacific Team")
+
+
+def test_format_wildcard_standings():
+    payload = {"standings": [
+        {"conferenceName": "Eastern", "divisionName": "Atlantic", "divisionSequence": 4, "wildcardSequence": 2, "teamName": {"default": "East Two"}},
+        {"conferenceName": "Eastern", "divisionName": "Metropolitan", "divisionSequence": 4, "wildcardSequence": 1, "teamName": {"default": "East One"}},
+        {"conferenceName": "Eastern", "divisionName": "Atlantic", "divisionSequence": 1, "wildcardSequence": 0, "teamName": {"default": "Division Leader"}},
+    ]}
+    output = format_standings(payload, category="wildcard")
+    assert "WC1" in output
+    assert output.index("East One") < output.index("East Two")
+    assert "Division Leader" not in output

@@ -98,7 +98,7 @@ def _standing_line(record: dict[str, Any], rank: str, favorites: Iterable[str] =
 
 
 def _standing_header() -> str:
-    return "   ─── RK  TEAM                         GP   W   L OT  PTS  DIFF"
+    return f"{'RK':>3}  {'TEAM':<28} {'GP':>2} {'W':>3} {'L':>3} {'OT':>2} {'PTS':>4} {'DIFF':>5}"
 
 
 def format_standings(

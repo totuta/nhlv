@@ -49,6 +49,7 @@ primary configuration file is `~/.config/nhlv/config`:
 
 ```ini
 favs=OTT,TOR
+favorite_players=hutson
 ```
 
 The older `~/.config/mlbv/config` `favs=` setting is used only as a fallback
@@ -59,6 +60,27 @@ export NHLV_FAVORITES=TOR,MTL
 ```
 
 The environment variable takes precedence over both config files.
+Favorite players use last names and can also be set with:
+
+```bash
+export NHLV_FAVORITE_PLAYERS=hutson,mcdavid
+```
+
+## Updating
+
+For a `pipx` installation from GitHub:
+
+```bash
+pipx upgrade nhlv
+```
+
+For a source checkout:
+
+```bash
+cd ~/Desktop/Research/MISC/nhlv
+git pull
+python3 -m pip install -e .
+```
 
 ## Development
 

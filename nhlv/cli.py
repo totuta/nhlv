@@ -7,7 +7,7 @@ import sys
 
 from . import __version__
 from .api import NHLAPIError, NHLClient, valid_date
-from .config import favorite_teams
+from .config import favorite_players, favorite_teams
 from .formatting import format_boxscore, format_leaders, format_schedule, format_scores, format_standings
 
 
@@ -60,7 +60,7 @@ def run(args: argparse.Namespace, client: NHLClient) -> str:
         if args.favorites:
             team = None
         if args.game_id:
-            return format_boxscore(client.boxscore(args.game_id), favorites)
+            return format_boxscore(client.boxscore(args.game_id), favorites, favorite_players())
         if not args.favorites and not team:
             raise ValueError("provide GAME_ID, --team TEAM, or --favorites")
         games = client.scores("now").get("games", [])
@@ -68,7 +68,9 @@ def run(args: argparse.Namespace, client: NHLClient) -> str:
         selected = [game for game in games if targets.intersection({game.get("awayTeam", {}).get("abbrev", "").upper(), game.get("homeTeam", {}).get("abbrev", "").upper()})]
         if not selected:
             raise ValueError("no matching game found today")
-        return "\n\n".join(format_boxscore(client.boxscore(game["id"]), favorites) for game in selected)
+        return "\n\n".join(
+            format_boxscore(client.boxscore(game["id"]), favorites, favorite_players()) for game in selected
+        )
     raise ValueError(f"unknown command: {args.command}")
 
 

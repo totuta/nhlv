@@ -187,8 +187,13 @@ def _boxscore_players(section: dict[str, Any]) -> list[dict[str, Any]]:
     return players
 
 
-def format_boxscore(payload: dict[str, Any], favorites: Iterable[str] = ()) -> str:
+def format_boxscore(
+    payload: dict[str, Any],
+    favorites: Iterable[str] = (),
+    favorite_players: Iterable[str] = (),
+) -> str:
     favorite_set = {team.upper() for team in favorites}
+    favorite_player_set = {player.lower() for player in favorite_players}
     away = payload.get("awayTeam", {})
     home = payload.get("homeTeam", {})
     rows = [heading(f"NHL Boxscore: {payload.get('id', '-')}")]
@@ -203,5 +208,6 @@ def format_boxscore(payload: dict[str, Any], favorites: Iterable[str] = ()) -> s
         for player in _boxscore_players(stats.get(side, {})):
             player_name = text(player.get("name"), "-")
             line = f" {player_name:<22} {player.get('goals', 0):>1} {player.get('assists', 0):>1} {player.get('points', 0):>1} {player.get('plusMinus', 0):>3} {player.get('sog', 0):>3} {player.get('pim', 0):>3} {text(player.get('toi'), '-'):>4}"
-            rows.append(f"{FAVORITE_COLOR}{line}{RESET_COLOR}" if code in favorite_set else line)
+            player_matches = any(last_name in player_name.lower() for last_name in favorite_player_set)
+            rows.append(f"{FAVORITE_COLOR}{line}{RESET_COLOR}" if code in favorite_set or player_matches else line)
     return "\n".join(rows)

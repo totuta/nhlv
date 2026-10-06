@@ -65,6 +65,6 @@ def test_format_boxscore_highlights_favorite_team():
             "homeTeam": {"forwards": []},
         },
     }
-    output = format_boxscore(payload, ["TOR"])
+    output = format_boxscore(payload, ["MTL"], ["player"])
     assert "Toronto" in output
     assert "\033[94m" in output

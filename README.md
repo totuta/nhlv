@@ -1,6 +1,6 @@
 # nhlv
 
-![nhlv logo](assets/nhlv-logo.png)
+<img src="assets/nhlv-logo.png" alt="nhlv logo" width="50%">
 
 ![nhlv terminal demo](assets/nhlv-demo.gif)
 
